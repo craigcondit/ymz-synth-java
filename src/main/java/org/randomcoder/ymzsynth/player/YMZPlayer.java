@@ -3,6 +3,7 @@ package org.randomcoder.ymzsynth.player;
 import static javax.sound.midi.ShortMessage.*;
 
 import java.io.*;
+import java.util.*;
 
 import javax.sound.midi.*;
 import javax.sound.midi.MidiDevice.Info;
@@ -77,23 +78,88 @@ public class YMZPlayer
 		});
 	}
 
-	public void play() throws Exception
+	public void play(String name, String version, String vendor, String desc) throws Exception
 	{
 		Info port = null;
-
 		for (Info info : MidiSystem.getMidiDeviceInfo())
 		{
-			if (info.getVendor().startsWith("E-MU") && info.getName().startsWith("Out"))
+			if (name == null && version == null && vendor == null && desc == null)
 			{
-				port = info;
+				System.err.println("At least one of name, version, vendor, or description must be specified.");
 				break;
 			}
+			if (name != null && !info.getName().equals(name))
+			{
+				continue;
+			}
+			if (vendor != null && !info.getVendor().equals(vendor))
+			{
+				continue;
+			}
+			if (version != null && !info.getVersion().equals(version))
+			{
+				continue;
+			}
+			if (desc != null && !info.getDescription().equals(desc))
+			{
+				continue;
+			}
+			try (MidiDevice dev = MidiSystem.getMidiDevice(info))
+			{
+				Receiver r = null;
+				try
+				{
+					r = dev.getReceiver();
+				}
+				catch (Exception e)
+				{
+					r = null;
+				}
+				if (r == null)
+				{
+					continue;
+				}
+			}
+			if (port != null)
+			{
+				System.err.println("Multiple MIDI ports match the given parameters. Please be more specific.");
+				port = null;
+				break;
+			}
+			port = info;
+			continue;
 		}
 		if (port == null)
 		{
 			System.err.println("Unable to locate MIDI port");
+			System.err.println("Available ports:");
+			for (Info info : MidiSystem.getMidiDeviceInfo())
+			{
+				try (MidiDevice dev = MidiSystem.getMidiDevice(info))
+				{
+					Receiver r = null;
+					try
+					{
+						r = dev.getReceiver();
+					}
+					catch (Exception e)
+					{
+						r = null;
+					}
+					if (r == null)
+					{
+						continue;
+					}
+				}
+
+				System.out.println("Device [name=" + info.getName() + ", version=" + info.getVersion() + ", vendor=" + info.getVendor() + ", desc="
+						+ info.getDescription() + "]");
+			}
 			return;
 		}
+
+		System.out.println("Using device [name=" + port.getName() + ", version=" + port.getVersion() + ", vendor=" + port.getVendor() + ", desc="
+				+ port.getDescription() + "]");
 
 		try (MidiDevice dev = MidiSystem.getMidiDevice(port))
 		{
@@ -281,17 +347,70 @@ public class YMZPlayer
 		rx.send(new ShortMessage(CONTROL_CHANGE, channel, CC_LATCH, 0), -1);
 	}
 
+	public static void usage()
+	{
+		System.err.println("Usage: " + YMZPlayer.class.getName()
+				+ " [--midi-name <port-name> ] [--midi-version <port-version>] [--midi-vendor <port-vendor>] [--midi-desc <port-description>] <ymz-file>");
+	}
+
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length < 1)
+		String portName = null;
+		String portVersion = null;
+		String portVendor = null;
+		String portDesc = null;
+		String ymzFilename = null;
+
+		boolean invalid = true;
+		LinkedList<String> list = new LinkedList<>(Arrays.asList(args));
+		argCheck: while (!list.isEmpty())
 		{
-			System.err.println("Usage: " + YMZPlayer.class.getName() + " <ymz-file>");
+			String arg = list.removeFirst();
+			switch (arg)
+			{
+				case "--midi-name":
+					if (list.isEmpty())
+					{
+						break argCheck;
+					}
+					portName = list.removeFirst();
+					break;
+				case "--midi-version":
+					if (list.isEmpty())
+					{
+						break argCheck;
+					}
+					portVersion = list.removeFirst();
+					break;
+				case "--midi-vendor":
+					if (list.isEmpty())
+					{
+						break argCheck;
+					}
+					portVendor = list.removeFirst();
+					break;
+				case "--midi-desc":
+					if (list.isEmpty())
+					{
+						break argCheck;
+					}
+					portDesc = list.removeFirst();
+					break;
+				default:
+					ymzFilename = arg;
+					invalid = false;
+					break argCheck;
+			}
+		}
+
+		if (invalid || !(list.isEmpty()))
+		{
+			usage();
 			System.exit(1);
 		}
 
-		File input = new File(args[0]);
+		File input = new File(ymzFilename);
 		YMZPlayer player = new YMZPlayer(input);
-		player.play();
+		player.play(portName, portVersion, portVendor, portDesc);
 	}
-
 }
