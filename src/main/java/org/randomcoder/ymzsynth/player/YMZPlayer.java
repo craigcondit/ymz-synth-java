@@ -7,6 +7,7 @@ import java.io.*;
 import javax.sound.midi.*;
 import javax.sound.midi.MidiDevice.Info;
 
+@SuppressWarnings({ "javadoc", "synthetic-access", "unused" })
 public class YMZPlayer
 {
 	private static final long NS_PER_CLOCK = 125L;
@@ -143,48 +144,48 @@ public class YMZPlayer
 
 	}
 
-	private void sendAll(Receiver rx, int channel, byte[] registers) throws Exception
+	private void sendAll(Receiver rx, int channel, byte[] regs) throws Exception
 	{
 		sendLatch(rx, channel, true);
-		if (prevRegisters[0] != registers[0] || prevRegisters[1] != registers[1])
+		if (prevRegisters[0] != regs[0] || prevRegisters[1] != regs[1])
 		{
-			sendFrequency(rx, channel, registers, 0);
+			sendFrequency(rx, channel, regs, 0);
 		}
-		if (prevRegisters[2] != registers[2] || prevRegisters[3] != registers[3])
+		if (prevRegisters[2] != regs[2] || prevRegisters[3] != regs[3])
 		{
-			sendFrequency(rx, channel, registers, 2);
+			sendFrequency(rx, channel, regs, 2);
 		}
-		if (prevRegisters[4] != registers[4] || prevRegisters[5] != registers[6])
+		if (prevRegisters[4] != regs[4] || prevRegisters[5] != regs[6])
 		{
-			sendFrequency(rx, channel, registers, 4);
+			sendFrequency(rx, channel, regs, 4);
 		}
-		if (prevRegisters[6] != registers[6])
+		if (prevRegisters[6] != regs[6])
 		{
-			sendValue(rx, channel, CC_NOISE_FREQ, (byte) ((registers[6] & 0x1f) << 2));
+			sendValue(rx, channel, CC_NOISE_FREQ, (byte) ((regs[6] & 0x1f) << 2));
 		}
-		if (prevRegisters[7] != registers[7])
+		if (prevRegisters[7] != regs[7])
 		{
-			sendValue(rx, channel, CC_MIXER, (byte) ((registers[7] & 0x3f) << 1));
+			sendValue(rx, channel, CC_MIXER, (byte) ((regs[7] & 0x3f) << 1));
 		}
-		if (prevRegisters[8] != registers[8])
+		if (prevRegisters[8] != regs[8])
 		{
-			sendValue(rx, channel, CC_CHANNEL_A_LEVEL, (byte) ((registers[8] & 0x1f) << 2));
+			sendValue(rx, channel, CC_CHANNEL_A_LEVEL, (byte) ((regs[8] & 0x1f) << 2));
 		}
-		if (prevRegisters[8] != registers[9])
+		if (prevRegisters[8] != regs[9])
 		{
-			sendValue(rx, channel, CC_CHANNEL_B_LEVEL, (byte) ((registers[9] & 0x1f) << 2));
+			sendValue(rx, channel, CC_CHANNEL_B_LEVEL, (byte) ((regs[9] & 0x1f) << 2));
 		}
-		if (prevRegisters[10] != registers[10])
+		if (prevRegisters[10] != regs[10])
 		{
-			sendValue(rx, channel, CC_CHANNEL_C_LEVEL, (byte) ((registers[10] & 0x1f) << 2));
+			sendValue(rx, channel, CC_CHANNEL_C_LEVEL, (byte) ((regs[10] & 0x1f) << 2));
 		}
-		if (prevRegisters[11] != registers[11] || prevRegisters[12] != registers[12])
+		if (prevRegisters[11] != regs[11] || prevRegisters[12] != regs[12])
 		{
-			sendEnvelopeFrequency(rx, channel, registers);
+			sendEnvelopeFrequency(rx, channel, regs);
 		}
-		if (prevRegisters[13] != registers[13])
+		if (prevRegisters[13] != regs[13])
 		{
-			sendValue(rx, channel, CC_ENVELOPE_SHAPE, (byte) ((registers[0xd] & 0x0f) << 3));
+			sendValue(rx, channel, CC_ENVELOPE_SHAPE, (byte) ((regs[0xd] & 0x0f) << 3));
 		}
 		sendLatch(rx, channel, false);
 	}
@@ -204,9 +205,9 @@ public class YMZPlayer
 
 	}
 
-	private void sendFrequency(Receiver rx, int channel, byte[] registers, int startRegister) throws Exception
+	private void sendFrequency(Receiver rx, int channel, byte[] regs, int startRegister) throws Exception
 	{
-		int data = (registers[startRegister] & 0xff) + ((registers[startRegister + 1] << 8) & 0x0f00);
+		int data = (regs[startRegister] & 0xff) + ((regs[startRegister + 1] << 8) & 0x0f00);
 		data = data >> FREQ_SCALE_FACTOR;
 
 		byte msb = (byte) ((data >> 5) & 0x7f); // top 7 bits
@@ -218,9 +219,9 @@ public class YMZPlayer
 		rx.send(new ShortMessage(CONTROL_CHANGE, channel, (byte) cc2, lsb), -1);
 	}
 
-	private void sendEnvelopeFrequency(Receiver rx, int channel, byte[] registers) throws Exception
+	private void sendEnvelopeFrequency(Receiver rx, int channel, byte[] regs) throws Exception
 	{
-		int data = (registers[0xc] & 0xff) + ((registers[0xd] << 8) & 0x0f00);
+		int data = (regs[0xc] & 0xff) + ((regs[0xd] << 8) & 0x0f00);
 		data = data >> FREQ_SCALE_FACTOR;
 		// 16 bit value, divided into 7/7/2
 
@@ -254,11 +255,11 @@ public class YMZPlayer
 		Thread.sleep(millis, (int) nanos);
 	}
 
-	private void resetController(Receiver rx, int channel, byte[] registers) throws Exception
+	private void resetController(Receiver rx, int channel, byte[] regs) throws Exception
 	{
 		for (int i = 0; i < 15; i++)
 		{
-			registers[i] = 0;
+			regs[i] = 0;
 		}
 
 		rx.send(new ShortMessage(CONTROL_CHANGE, channel, CC_LATCH, 127), -1);
